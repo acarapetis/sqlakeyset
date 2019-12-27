@@ -38,6 +38,14 @@ s.custom_serializations[Z] = ser_z
 s.custom_unserializations['z'] = unser_z
 
 
+class Y(str):
+    pass
+
+rev = lambda x: x[::-1]
+
+s.register_type(Y, 'y', rev, rev)
+
+
 with io.open('tests/blns.txt') as f:
     NAUGHTY = f.read().splitlines()
 
@@ -65,6 +73,8 @@ def test_serial():
     assert s.serialize_value('abc') == 's:abc'
     assert s.serialize_value(b'abc') == 'b:YWJj'
     assert s.serialize_value(b'abc') == 'b:YWJj'
+    assert s.serialize_value(Z('abc')) == 'z:cba'
+    assert s.serialize_value(Y('abc')) == 'y:cba'
     assert s.serialize_value(datetime.date(2007, 12, 5)) == 'd:2007-12-05'
     assert s.serialize_value(datetime.datetime(2007, 12, 5, 12, 30, 30, tzinfo=utc)) \
         == 'dt:2007-12-05 12:30:30+00:00'
@@ -91,6 +101,7 @@ def test_unserial():
     twoway(datetime.date(2007, 12, 5))
     twoway(datetime.datetime(2007, 12, 5, 12, 30, 30, tzinfo=utc))
     twoway(Z('abc'))
+    twoway(Y('abc'))
     twoway(uuid.UUID('939d4cc9-830d-4cca-bd74-3ec3d541a9b3'))
 
     with raises(ValueError):
