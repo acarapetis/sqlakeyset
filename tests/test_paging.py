@@ -124,6 +124,9 @@ def _dburl(request):
             b.author = Author(name='Willy Shakespeare',
                               info='Old timer')
 
+        if x % 3 == 1:
+            b.a = None
+
         data.append(b)
 
     for x in range(count):
@@ -206,6 +209,10 @@ def check_paging_orm(q):
                     break
 
             # Ensure union of pages is original q.all()
+            print('gathered {} {} = {}'.format(
+                backwards, per_page, [(b.a, b.id) for b in gathered]))
+            print('unpaged {} {} = {}'.format(
+                backwards, per_page, [(b.a, b.id) for b in unpaged]))
             assert gathered == unpaged
 
 
@@ -245,6 +252,28 @@ def check_paging_core(selectable, s):
                     break
 
             assert gathered == unpaged
+
+
+def test_nulls(dburl):
+    with S(dburl, echo=ECHO) as s:
+        #q = s.query(Book).order_by(Book.a, Book.id)
+        #check_paging_orm(q)
+        #q = s.query(Book).order_by(Book.a.desc(), Book.id)
+        #check_paging_orm(q)
+        #q = s.query(Book).order_by(Book.a.asc(), Book.id)
+        #check_paging_orm(q)
+        q = s.query(Book).order_by(Book.a.nullsfirst(), Book.id)
+        check_paging_orm(q)
+        q = s.query(Book).order_by(Book.a.nullslast(), Book.id)
+        check_paging_orm(q)
+        q = s.query(Book).order_by(Book.a.desc().nullsfirst(), Book.id)
+        check_paging_orm(q)
+        q = s.query(Book).order_by(Book.a.desc().nullslast(), Book.id)
+        check_paging_orm(q)
+        q = s.query(Book).order_by(Book.a.asc().nullsfirst(), Book.id)
+        check_paging_orm(q)
+        q = s.query(Book).order_by(Book.a.asc().nullslast(), Book.id)
+        check_paging_orm(q)
 
 
 def test_orm_query1(dburl):

@@ -4,13 +4,15 @@ from copy import copy
 from warnings import warn
 
 import sqlalchemy
-from sqlalchemy import asc, column
+from sqlalchemy import asc, desc, column, nullsfirst, nullslast
 from sqlalchemy.orm import Bundle, Mapper, class_mapper
 from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlalchemy.sql.elements import _label_reference
 from sqlalchemy.sql.expression import ClauseList, ColumnElement, Label
 from sqlalchemy.sql.operators import (asc_op, desc_op, nullsfirst_op,
                                       nullslast_op)
+
+from .nulls import build_comparison, is_nulls_last_default
 
 _LABELLED = (Label, _label_reference)
 _ORDER_MODIFIERS = (asc_op, desc_op, nullsfirst_op, nullslast_op)
@@ -21,7 +23,7 @@ _WRAPPING_OVERFLOW = ("Maximum element wrapping depth reached; there's "
                       "sqlakeyset doesn't know how to handle.")
 
 
-def parse_clause(clause):
+def parse_clause(clause, **kw):
     """Parse an ORDER BY clause into a list of :class:`OC` instances."""
     def _flatten(cl):
         if isinstance(cl, ClauseList):
@@ -30,7 +32,7 @@ def parse_clause(clause):
                     yield x
         else:
             yield cl
-    return [OC(c) for c in _flatten(clause)]
+    return [OC(c, **kw) for c in _flatten(clause)]
 
 
 def _warn_if_nullable(x):
@@ -46,11 +48,12 @@ class OC:
     """Wrapper class for ordering columns; i.e.  instances of
     :class:`sqlalchemy.sql.expression.ColumnElement` appearing in the ORDER BY
     clause of a query we are paging."""
-    def __init__(self, x):
+    def __init__(self, x, dialect=None):
+        self._dialect = dialect
         if isinstance(x, str):
             x = column(x)
         if _get_order_direction(x) is None:
-            x = asc(x)
+            x = _add_order_direction(x, asc)
         self.uo = x
         _warn_if_nullable(self.comparable_value)
         self.full_name = str(self.element)
@@ -80,6 +83,13 @@ class OC:
         return strip_labels(self.element)
 
     @property
+    def nulls_place(self):
+        """Find any explicit NULLS FIRST/NULLS LAST modifier in this column.
+        
+        :return: :ref:`nullsfirst_op`,  :ref:`nullslast_op` or `None`."""
+        return _get_nulls_modifier(self.uo)
+
+    @property
     def is_ascending(self):
         """Returns ``True`` if this column is ascending, ``False`` if
         descending."""
@@ -91,32 +101,42 @@ class OC:
     @property
     def reversed(self):
         """An :class:`OC` representing the same column ordering, but reversed."""
-        new_uo = _reverse_order_direction(self.uo)
-        if new_uo is None:
-            raise ValueError # pragma: no cover
-        return OC(new_uo)
+        dirop = _get_order_direction(self.uo)
+        nullop = _get_nulls_modifier(self.uo)
+        if nullop is None:
+            was_nullslast = is_nulls_last_default(self.dialect)
+        else:
+            was_nullslast = nullop == nullslast_op
 
-    def pair_for_comparison(self, value, dialect):
-        """Return a pair of SQL expressions representing comparable values for
-        this ordering column and a specified value. 
+        direction = asc if dirop == desc_op else desc
+        nullmod = nullsfirst if was_nullslast else nullslast
+
+        return OC(nullmod(direction(_remove_order_direction(self.uo))))
+
+    def rows_for_comparison(self, value, dialect):
+        """Return a pair of lists of SQL expressions representing comparable
+        values for this ordering column and a specified value.
 
         :param value: A value to compare this column against.
         :param dialect: The :class:`sqlalchemy.engine.interfaces.Dialect` in
             use.
-        :returns: A pair `(a, b)` such that the comparison `a < b` is the
-            condition for the value of this OC being past `value` in the paging
-            order."""
-        compval = self.comparable_value
-        # If this OC is a column with a custom type, apply the custom
-        # preprocessing to the comparsion value:
-        try:
-            value = compval.type.process_bind_param(value, dialect)
-        except AttributeError:
-            pass
-        if self.is_ascending:
-            return compval, value
+        :returns: A pair `(a, b)` of *lists* such that the row comparison
+            `a < b` is the condition for the value of this OC being past
+            `value` in the paging order.
+
+            For example, if `([a0, a1], [b0, b1])` is returned, then the row
+            comparison `a < b` is `a0 < b0 OR (a0 == b0 AND a1 < b1)`."""
+            
+        npl = self.nulls_place
+        if npl == nullslast_op:
+            nullslast = True
+        elif npl == nullsfirst_op:
+            nullslast = False
         else:
-            return value, compval
+            nullslast = None
+        return build_comparison(self.comparable_value, value, dialect,
+                                ascending=self.is_ascending,
+                                nullslast=nullslast)
 
     def __str__(self):
         return str(self.uo)
@@ -134,6 +154,54 @@ def strip_labels(el):
             raise ValueError # pragma: no cover
     return el
 
+
+def _get_nulls_modifier(x):
+    """
+    Given a :class:`sqlalchemy.sql.expression.ColumnElement`, find and return
+    its NULLS FIRST/NULLS LAST modifier if it has one.
+
+    :param x: a :class:`sqlalchemy.sql.expression.ColumnElement`
+    :return: `asc_op`, `desc_op` or `None`
+    """
+    for _ in range(_WRAPPING_DEPTH):
+        mod = getattr(x, 'modifier', None)
+        if mod in _ORDER_MODIFIERS:
+            return mod
+
+        el = getattr(x, 'element', None)
+        if el is None:
+            return None
+        x = el
+    raise Exception(_WRAPPING_OVERFLOW) # pragma: no cover
+
+def _add_order_direction(ce, direction):
+    # If this expression has NULLS FIRST/NULLS LAST at the top level,
+    # just reconstruct it with the direction in there one level lower.
+    mod = getattr(ce, 'modifier', None)
+    if mod in _ORDER_MODIFIERS:
+        return mod(direction(ce.element))
+
+    # Otherwise, we have to dig through the modifier stack to find a NULLS
+    # FIRST/NULLS LAST
+    x = copied = ce._clone()
+    for _ in range(_WRAPPING_DEPTH):
+        mod = getattr(x, 'modifier', None)
+        if mod in _ORDER_MODIFIERS:
+            x.element = direction(x.element)
+            return copied
+        else:
+            if not hasattr(x, 'element'):
+                break
+            # Since we're going to change something inside x.element, we
+            # need to clone another level deeper.
+            x._copy_internals()
+            x = x.element
+    else:
+        raise Exception(_WRAPPING_OVERFLOW) # pragma: no cover
+    
+    # And if we didn't find any NULLS modifier at all, just put the 
+    # direction at the top level.
+    return direction(x)
 
 def _get_order_direction(x):
     """

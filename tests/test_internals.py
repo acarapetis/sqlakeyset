@@ -2,7 +2,7 @@ from pytest import mark, raises, warns
 from sqlalchemy import Column, Integer, String, asc, column, desc
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql.expression import nullslast
+from sqlalchemy.sql.expression import nullslast, nullsfirst
 from sqlalchemy.sql.operators import asc_op, desc_op
 
 from sqlakeyset import Page, Paging, serialize_bookmark
@@ -16,9 +16,10 @@ from sqlakeyset.columns import (OC, derive_order_key,
 @mark.filterwarnings("ignore:.*NULLS FIRST.*")
 def test_oc():
     a = asc('a')
-    b = desc('a')
+    b = nullslast(desc('a'))
     c = asc('b')
     n = nullslast(desc('a'))
+    nr = nullsfirst(asc('a'))
 
     a = OC(a)
     b = OC(b)
@@ -32,8 +33,9 @@ def test_oc():
     assert n.reversed.is_ascending
     assert not n.is_ascending # make sure reversed doesn't modify in-place
     assert str(a.element) == str(b.element) == str(n.element)
-    assert str(a) == str(b.reversed)
+    assert str(a.reversed) == str(b)
     assert str(n.reversed.reversed) == str(n)
+    assert str(n.reversed) == str(nr)
 
     assert a.name == 'a'
     assert n.name == 'a'

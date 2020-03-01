@@ -24,6 +24,8 @@ def orm_result_type(query):
     labels = [e._label_name for e in query._entities]
     return lightweight_named_tuple("result", labels)
 
+def flatten(ls):
+    return [x for l in ls for x in l]
 
 def where_condition_for_page(ordering_columns, place, dialect):
     """Construct the SQL condition required to restrict a query to the desired
@@ -41,8 +43,9 @@ def where_condition_for_page(ordering_columns, place, dialect):
         raise ValueError('bad paging value') # pragma: no cover
 
     zipped = zip(ordering_columns, place)
-    swapped = [c.pair_for_comparison(value, dialect) for c, value in zipped]
-    row, place_row = zip(*swapped)
+    swapped = [c.rows_for_comparison(value, dialect)
+               for c, value in zipped]
+    row, place_row = [flatten(r) for r in zip(*swapped)]
 
     if len(row) == 1:
         condition = row[0] > place_row[0]
@@ -91,7 +94,7 @@ def perform_paging(q, per_page, place, backwards, orm=True, s=None):
         column_descriptions = q._raw_columns
 
     ob_clause = selectable._order_by_clause
-    order_cols = parse_clause(ob_clause)
+    order_cols = parse_clause(ob_clause, dialect=s.bind.dialect)
     if backwards:
         order_cols = [c.reversed for c in order_cols]
     mapped_ocols = [find_order_key(ocol, column_descriptions)
