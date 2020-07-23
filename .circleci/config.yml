@@ -55,7 +55,7 @@ jobs:
       - run:
           command: |
             . ~/.venv/bin/activate
-            make test
+            make tox
       - store_artifacts:
           path: test-reports/
           destination: tr1
