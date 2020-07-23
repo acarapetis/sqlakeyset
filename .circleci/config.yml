@@ -1,9 +1,14 @@
-version: 2
+version: 2.1
 jobs:
   build:
+    parameters:
+      pyimage:
+        description: "Docker image to use for python tests"
+        default: "circleci/python"
+        type: string
     working_directory: ~/circleci
     docker:
-      - image: circleci/python:3.8.2
+      - image: "<< parameters.pyimage >>"
       - image: circleci/postgres:12
         environment:
           POSTGRES_USER: circleci
@@ -90,10 +95,24 @@ workflows:
   version: 2
   build-then-publish:
     jobs:
-      - build
+      - build:
+          name: build38
+          pyimage: circleci/python:3.8
+      - build:
+          name: build37
+          pyimage: circleci/python:3.7
+      - build:
+          name: build36
+          pyimage: circleci/python:3.6
+      - build:
+          name: build35
+          pyimage: circleci/python:3.5
       - publish:
           requires:
-            - build
+            - build38
+            - build37
+            - build36
+            - build35
           filters:
             branches:
               only: master
