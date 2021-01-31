@@ -98,6 +98,12 @@ class Page(list):
         the list of string keys for rows."""
         return self._keys
 
+    def by_marker(self):
+        return zip(self.paging.markers, self)
+
+    def by_bookmark(self):
+        return zip(self.paging.bookmarks, self)
+
 
 class Paging:
     """Object with paging information. Most properties return a page marker.
@@ -118,15 +124,9 @@ class Paging:
         self.original_rows = rows
 
         if get_marker:
-
-            def _get_marker(i):
-                return get_marker(self.original_rows[i], ocols)
-
-            marker = _get_marker
-        else:
-            if rows and not markers:
-                raise ValueError
-            marker = markers.__getitem__
+            markers = [get_marker(x, ocols) for x in rows]
+        elif rows and not markers:
+            raise ValueError
 
         self.per_page = per_page
         self.backwards = backwards
@@ -137,22 +137,27 @@ class Paging:
         self.marker_0 = current_marker
 
         if rows:
-            self.marker_1 = marker(0)
-            self.marker_n = marker(len(rows) - 1)
+            self.marker_1 = markers[0]
+            self.marker_n = markers[len(rows) - 1]
         else:
             self.marker_1 = None
             self.marker_n = None
 
         if excess:
-            self.marker_nplus1 = marker(len(rows))
+            self.marker_nplus1 = markers[len(rows)]
         else:
             self.marker_nplus1 = None
 
         four = [self.marker_0, self.marker_1, self.marker_n, self.marker_nplus1]
 
+        markers = markers[:per_page]
         if backwards:
             self.rows.reverse()
             four.reverse()
+            markers.reverse()
+
+        self.markers = [(x, backwards) for x in markers]
+        self.bookmarks = [serialize_bookmark(x) for x in self.markers]
 
         self.before, self.first, self.last, self.beyond = four
 

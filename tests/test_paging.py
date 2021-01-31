@@ -221,6 +221,7 @@ def check_paging_orm(q):
 
     unpaged = q.all()
 
+    # check paging produces the same results in the same order:
     for backwards in [False, True]:
         for per_page in item_counts:
             gathered = []
@@ -258,6 +259,23 @@ def check_paging_orm(q):
 
             # Ensure union of pages is original q.all()
             assert gathered == unpaged
+
+    # check that mid-page markers are correct
+    for backwards in [False, True]:
+        page = None, backwards
+        serialized_page = serialize_bookmark(page)
+        page = unserialize_bookmark(serialized_page)
+        page_with_paging = get_page(q, per_page=5, page=serialized_page)
+        paging = page_with_paging.paging
+        N = len(page_with_paging)
+        for i in range(N):
+            offset_page = get_page(q, per_page=5, page=paging.markers[i])
+            print(f"N={N} i={i}")
+            assert offset_page[:N - i] == page_with_paging[i:]
+        # try with serialized bookmarks too
+        for i in range(N):
+            offset_page = get_page(q, per_page=5, page=paging.bookmarks[i])
+            assert offset_page[:N - i] == page_with_paging[i:]
 
 
 def check_paging_core(selectable, s):
