@@ -375,6 +375,14 @@ def test_orm_query2(dburl):
         check_paging_orm(q=q)
 
 
+def test_sqla2_orm_query2(dburl):
+    with S(dburl, echo=ECHO) as s:
+        sel = select(Book).order_by(Book.id, Book.name)
+        check_paging_core(sel, s)
+        sel = select(Book).only_return_tuples(True).order_by(Book.id, Book.name)
+        check_paging_core(sel, s)
+
+
 def test_orm_query3(dburl):
     with S(dburl, echo=ECHO) as s:
         q = s.query(Book.id, Book.name.label("x")).order_by(Book.name, Book.id)
