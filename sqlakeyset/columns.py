@@ -1,6 +1,7 @@
 """Classes and supporting functions to manipulate ordering columns and extract
 keyset markers from query results."""
 from copy import copy
+from typing import Any, List, Optional
 from warnings import warn
 
 import sqlalchemy
@@ -25,24 +26,6 @@ _WRAPPING_OVERFLOW = (
     "probably a circularity in sqlalchemy that "
     "sqlakeyset doesn't know how to handle."
 )
-
-
-def parse_ob_clause(selectable):
-    """Parse the ORDER BY clause of a selectable into a list of :class:`OC` instances."""
-
-    def _flatten(cl):
-        if isinstance(cl, ClauseList):
-            for subclause in cl.clauses:
-                for x in _flatten(subclause):
-                    yield x
-        elif isinstance(cl, (tuple, list)):
-            for xs in cl:
-                for x in _flatten(xs):
-                    yield x
-        else:
-            yield cl
-
-    return [OC(c) for c in _flatten(order_by_clauses(selectable))]
 
 
 def _warn_if_nullable(x):
@@ -151,6 +134,24 @@ class OC:
         return "<OC: {}>".format(str(self))
 
 
+def parse_ob_clause(selectable) -> List[OC]:
+    """Parse the ORDER BY clause of a selectable into a list of :class:`OC` instances."""
+
+    def _flatten(cl):
+        if isinstance(cl, ClauseList):
+            for subclause in cl.clauses:
+                for x in _flatten(subclause):
+                    yield x
+        elif isinstance(cl, (tuple, list)):
+            for xs in cl:
+                for x in _flatten(xs):
+                    yield x
+        else:
+            yield cl
+
+    return [OC(c) for c in _flatten(order_by_clauses(selectable))]
+
+
 def strip_labels(el):
     """Remove labels from a
     :class:`sqlalchemy.sql.expression.ColumnElement`."""
@@ -182,7 +183,7 @@ def _get_order_direction(x):
     raise Exception(_WRAPPING_OVERFLOW)  # pragma: no cover
 
 
-def _reverse_order_direction(ce):
+def _reverse_order_direction(ce: ColumnElement):
     """
     Given a :class:`sqlalchemy.sql.expression.ColumnElement`, return a copy
     with its ordering direction (ASC or DESC) reversed (if it has one).
@@ -256,12 +257,17 @@ class MappedOrderColumn:
     this requires adding extra entities to the query; in this case,
     ``extra_column`` will be set."""
 
-    def __init__(self, oc):
+    oc: OC
+    extra_column: Optional[Any]
+    """An extra SQLAlchemy ORM entity that this ordering column needs to
+    add to its query in order to retrieve its value at each row. If no
+    extra data is required, the value of this property will be ``None``."""
+    # TODO: work out how to type hint extra_column his correctly? Might not be
+    # worth it until we move to SQLAlchemy 2.0.
+
+    def __init__(self, oc: OC):
         self.oc = oc
         self.extra_column = None
-        """An extra SQLAlchemy ORM entity that this ordering column needs to
-        add to its query in order to retrieve its value at each row. If no
-        extra data is required, the value of this property will be ``None``."""
 
     def get_from_row(self, internal_row):
         """Extract the value of this ordering column from a result row."""
@@ -405,7 +411,7 @@ def derive_order_key(ocol, desc, index):
         pass
 
 
-def find_order_key(ocol, column_descriptions):
+def find_order_key(ocol: OC, column_descriptions) -> MappedOrderColumn:
     """Return a :class:`MappedOrderColumn` describing how to populate the
     ordering column `ocol` from a query returning columns described by
     `column_descriptions`.

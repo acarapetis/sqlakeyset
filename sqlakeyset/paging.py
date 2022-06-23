@@ -1,10 +1,13 @@
 """Main paging interface and implementation."""
 
 from functools import partial
+from typing import Iterable, List, NamedTuple, Optional, Sequence, Union
+from typing_extensions import Literal  # to keep python 3.7 support
 
 from sqlalchemy import tuple_, and_, or_
+from sqlalchemy.engine.interfaces import Dialect
 
-from .columns import find_order_key, parse_ob_clause
+from .columns import OC, MappedOrderColumn, find_order_key, parse_ob_clause
 from .results import Page, Paging, unserialize_bookmark
 from .serial import InvalidPage
 from .sqla import (
@@ -17,6 +20,7 @@ from .sqla import (
     orm_result_type,
     orm_to_selectable,
 )
+from .types import Keyset, Marker
 
 PER_PAGE_DEFAULT = 10
 
@@ -26,7 +30,9 @@ PER_PAGE_DEFAULT = 10
 SUPPORTS_NATIVE_TUPLE_COMPARISON = ("postgresql", "mysql", "sqlite")
 
 
-def compare_tuples(lesser, greater, dialect=None):
+def compare_tuples(
+    lesser: Sequence, greater: Sequence, dialect: Optional[Dialect] = None
+):
     """Given two sequences of equal length (whose entries can be SQL clauses or
     simple values), create an SQL clause defining the lexicographic tuple
     comparison ``lesser < greater``.
@@ -51,7 +57,9 @@ def compare_tuples(lesser, greater, dialect=None):
     )
 
 
-def where_condition_for_page(ordering_columns, place, dialect):
+def where_condition_for_page(
+    ordering_columns: List[OC], place: Keyset, dialect: Dialect
+):
     """Construct the SQL condition required to restrict a query to the desired
     page.
 
@@ -75,8 +83,20 @@ def where_condition_for_page(ordering_columns, place, dialect):
     return compare_tuples(greater=row, lesser=place_row, dialect=dialect)
 
 
+class _PagingResult(NamedTuple):
+    order_columns: List[OC]
+    mapped_order_columns: List[MappedOrderColumn]
+    extra_columns: List
+    rows: Iterable
+    keys: Optional[List]
+
+
 def orm_page_from_rows(
-    paging_result, result_type, page_size, backwards=False, current_marker=None
+    paging_result: _PagingResult,
+    result_type,
+    page_size,
+    backwards=False,
+    current_place=None,
 ):
     """Turn a raw page of results for an ORM query (as obtained by
     :func:`orm_get_page`) into a :class:`.results.Page` for external
@@ -90,14 +110,16 @@ def orm_page_from_rows(
     out_rows = [make_row(row) for row in rows]
     key_rows = [tuple(col.get_from_row(row) for col in mapped_ocols) for row in rows]
     paging = Paging(
-        out_rows, page_size, ocols, backwards, current_marker, markers=key_rows
+        out_rows, page_size, ocols, backwards, current_place, places=key_rows
     )
 
     page = Page(paging.rows, paging, keys=keys)
     return page
 
 
-def perform_paging(q, per_page, place, backwards, orm=True, s=None):
+def perform_paging(
+    q, per_page: int, place: Optional[Keyset], backwards: bool, orm: bool = True, s=None
+) -> _PagingResult:
     if orm:
         selectable = orm_to_selectable(q)
         s = q.session
@@ -145,6 +167,7 @@ def perform_paging(q, per_page, place, backwards, orm=True, s=None):
 
     q = q.limit(per_page + 1)  # 1 extra to check if there's a further page
     if orm:
+        keys = None
         rows = q.all()
     else:
         selected = s.execute(q)
@@ -152,10 +175,10 @@ def perform_paging(q, per_page, place, backwards, orm=True, s=None):
         N = len(keys) - len(extra_columns)
         keys = keys[:N]
         rows = selected.fetchall()
-    return order_cols, mapped_ocols, extra_columns, rows, keys
+    return _PagingResult(order_cols, mapped_ocols, extra_columns, rows, keys)
 
 
-def orm_get_page(q, per_page, place, backwards):
+def orm_get_page(q, per_page: int, place: Optional[Keyset], backwards: bool) -> Page:
     """Get a page from an SQLAlchemy ORM query.
 
     :param q: The :class:`Query` to paginate.
@@ -169,12 +192,12 @@ def orm_get_page(q, per_page, place, backwards):
         q=q, per_page=per_page, place=place, backwards=backwards, orm=True
     )
     page = orm_page_from_rows(
-        paging_result, result_type, per_page, backwards, current_marker=place
+        paging_result, result_type, per_page, backwards, current_place=place
     )
     return page
 
 
-def core_get_page(s, selectable, per_page, place, backwards):
+def core_get_page(s, selectable, per_page: int, place: Keyset, backwards: bool) -> Page:
     """Get a page from an SQLAlchemy Core selectable.
 
     :param s: :class:`sqlalchemy.engine.Connection` or
@@ -200,14 +223,18 @@ def core_get_page(s, selectable, per_page, place, backwards):
         s=s,
     )
     page = core_page_from_rows(
-        paging_result, result_type, per_page, backwards, current_marker=place
+        paging_result, result_type, per_page, backwards, current_place=place
     )
     return page
 
 
 def core_page_from_rows(
-    paging_result, result_type, page_size, backwards=False, current_marker=None
-):
+    paging_result: _PagingResult,
+    result_type,
+    page_size: int,
+    backwards: bool = False,
+    current_place: Optional[Marker] = None,
+) -> Page:
     """Turn a raw page of results for an SQLAlchemy Core query (as obtained by
     :func:`.core_get_page`) into a :class:`.Page` for external consumers."""
     ocols, mapped_ocols, extra_columns, rows, keys = paging_result
@@ -218,20 +245,36 @@ def core_page_from_rows(
     out_rows = [make_row(row) for row in rows]
     key_rows = [tuple(col.get_from_row(row) for col in mapped_ocols) for row in rows]
     paging = Paging(
-        out_rows, page_size, ocols, backwards, current_marker, markers=key_rows
+        out_rows, page_size, ocols, backwards, current_place, places=key_rows
     )
     page = Page(paging.rows, paging, keys=keys)
     return page
 
 
-def process_args(after=False, before=False, page=None):
+# Sadly the default values for after/before used to be False, not None, so we
+# need to support either of these to avoid breaking API compatibility.
+# Thus this awful type.
+OptionalKeyset = Union[Keyset, Literal[False], None]
+
+
+def process_args(
+    after: OptionalKeyset = None,
+    before: OptionalKeyset = None,
+    page: Optional[Union[Marker, str]] = None,
+) -> Marker:
     if isinstance(page, str):
         page = unserialize_bookmark(page)
 
-    if before is not False and after is not False:
+    if after is False:
+        after = None
+
+    if before is False:
+        before = None
+
+    if before is not None and after is not None:
         raise ValueError("after *OR* before")
 
-    if (before is not False or after is not False) and page is not None:
+    if (before is not None or after is not None) and page is not None:
         raise ValueError("specify either a page tuple, or before/after")
 
     if page:
@@ -249,11 +292,16 @@ def process_args(after=False, before=False, page=None):
         backwards = False
         place = None
 
-    return place, backwards
+    return Marker(place, backwards)
 
 
 def select_page(
-    s, selectable, per_page=PER_PAGE_DEFAULT, after=False, before=False, page=None
+    s,
+    selectable,
+    per_page: int = PER_PAGE_DEFAULT,
+    after: OptionalKeyset = None,
+    before: OptionalKeyset = None,
+    page: Optional[Union[Marker, str]] = None,
 ):
     """Get a page of results from a SQLAlchemy Core selectable.
 
@@ -280,7 +328,13 @@ def select_page(
     return core_get_page(s, selectable, per_page, place, backwards)
 
 
-def get_page(query, per_page=PER_PAGE_DEFAULT, after=False, before=False, page=None):
+def get_page(
+    query,
+    per_page: int = PER_PAGE_DEFAULT,
+    after: OptionalKeyset = None,
+    before: OptionalKeyset = None,
+    page: Optional[Union[Marker, str]] = None,
+):
     """Get a page of results for an ORM query.
 
     Specify no more than one of the arguments ``page``, ``after`` or

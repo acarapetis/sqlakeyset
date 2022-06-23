@@ -108,8 +108,8 @@ def general_asserts(p):
     assert p.bookmark_further == serialize_bookmark(p.further)
 
 
-def getitem(row, order_cols):
-    return tuple(row[c.name] for c in order_cols)
+def keys_of(rows, order_cols):
+    return [tuple(row[c.name] for c in order_cols) for row in rows]
 
 
 T1 = []
@@ -134,7 +134,7 @@ def test_paging_objects1():
 
     ob = [OC(x) for x in ["id", "b"]]
 
-    p = Paging(T1, 10, ob, backwards=False, current_marker=None, get_keys_from=getitem)
+    p = Paging(T1, 10, ob, backwards=False, current_place=None, places=keys_of(T1, ob))
     assert p.next == (None, False)
     assert p.further == (None, False)
     assert p.previous == (None, True)
@@ -145,7 +145,7 @@ def test_paging_objects1():
 def test_paging_object2_per_page_3():
     ob = [OC(x) for x in ["id", "b"]]
 
-    p = Paging(T2, 3, ob, backwards=False, current_marker=None, get_keys_from=getitem)
+    p = Paging(T2, 3, ob, backwards=False, current_place=None, places=keys_of(T2, ob))
     assert p.next == ((3, 3), False)
     assert not p.has_next
     assert not p.has_previous
@@ -158,7 +158,7 @@ def test_paging_object2_per_page_3():
 def test_paging_object2_per_page_2():
     ob = [OC(x) for x in ["id", "b"]]
 
-    p = Paging(T2, 2, ob, backwards=False, current_marker=None, get_keys_from=getitem)
+    p = Paging(T2, 2, ob, backwards=False, current_place=None, places=keys_of(T2, ob))
     assert p.next == ((2, 1), False)
     assert p.has_next
     general_asserts(p)
@@ -176,7 +176,7 @@ def test_paging_object_text():
         OC(Column("name", String, nullable=False)),
     ]
 
-    p = Paging(T3, 2, ob, backwards=False, current_marker=None, get_keys_from=getitem)
+    p = Paging(T3, 2, ob, backwards=False, current_place=None, places=keys_of(T3, ob))
 
     assert p.rows
 
@@ -196,4 +196,4 @@ def test_paging_object_text():
 def test_warn_on_nullslast():
     with warns(UserWarning):
         ob = [OC(nullslast(column("id")))]
-        Paging(T1, 10, ob, backwards=False, current_marker=None, get_keys_from=getitem)
+        Paging(T1, 10, ob, backwards=False, current_place=None, places=keys_of(T1, ob))
