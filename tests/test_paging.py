@@ -28,15 +28,6 @@ from sqlbag import temporary_database, S
 import arrow
 from datetime import timedelta
 
-# XXX monkeypatch until sqlalchemy_utils supports sqlalchemy 1.4
-try:
-    from sqlalchemy.orm.query import _ColumnEntity
-except ImportError:
-    from sqlalchemy.orm.context import _ColumnEntity
-    import sqlalchemy.orm.query
-
-    sqlalchemy.orm.query._ColumnEntity = _ColumnEntity
-
 from sqlalchemy_utils import ArrowType
 
 from sqlakeyset import (
