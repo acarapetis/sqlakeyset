@@ -146,9 +146,10 @@ class Paging:
     metadata.
     """
 
+    rows: List
     per_page: int
     backwards: bool
-    rows: List
+    _places: List[Keyset]
 
     def __init__(
         self,
@@ -156,7 +157,7 @@ class Paging:
         per_page: int,
         ocols: List[OC],
         backwards: bool,
-        current_place: Keyset,
+        current_place: Optional[Keyset],
         places: List[Keyset],
     ):
         self.original_rows = rows
