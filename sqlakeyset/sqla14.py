@@ -1,6 +1,11 @@
 """Methods for messing with the internals of SQLAlchemy >1.3 results."""
 from sqlalchemy.engine.result import result_tuple
-from sqlalchemy.engine.row import Row as _Row, LegacyRow as _LegacyRow
+from sqlalchemy.engine.row import Row as _Row
+try:
+    from sqlalchemy.engine.row import LegacyRow as _LegacyRow # type: ignore
+except ImportError:
+    class _LegacyRow:
+        pass
 
 from .constants import ORDER_COL_PREFIX
 

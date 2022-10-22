@@ -28,7 +28,6 @@ from sqlbag import temporary_database, S
 import arrow
 from datetime import timedelta
 
-# XXX monkeypatch until sqlalchemy_utils supports sqlalchemy 1.4
 try:
     from sqlalchemy.orm.query import _ColumnEntity
 except ImportError:
@@ -36,6 +35,16 @@ except ImportError:
     import sqlalchemy.orm.query
 
     sqlalchemy.orm.query._ColumnEntity = _ColumnEntity
+
+sqla_version = version.parse(sqlalchemy.__version__)
+sqla13 = sqla_version.major <= 1 and sqla_version.minor <= 3
+sqla20 = sqla_version.major >= 2
+bundle_bug = sqla_version == version.parse("1.4.0b1")
+
+if sqlalchemy.__version__.startswith("2.0.0b"):
+    # sqlalchemy_utils doesn't know how to parse beta version strings...
+    sqlalchemy.__version__ = "2.0.0"
+    
 
 from sqlalchemy_utils import ArrowType
 
@@ -553,12 +562,10 @@ def test_orm_recursive_cte(pg_only_dburl):
         check_paging_orm(q=q)
 
 
-bundle_bug = version.parse(sqlalchemy.__version__) == version.parse("1.4.0b1")
-
-
 @pytest.mark.skipif(
     bundle_bug, reason="https://github.com/sqlalchemy/sqlalchemy/issues/5702"
 )
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_orm_order_by_bundle(dburl):
     Scorecard = Bundle(
         "scorecard",
@@ -576,6 +583,7 @@ def test_orm_order_by_bundle(dburl):
         check_paging_orm(q=q)
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_orm_joined_inheritance(joined_inheritance_dburl):
     with S(joined_inheritance_dburl, echo=ECHO) as s:
         q = s.query(Animal).order_by(Animal.leg_count, Animal.id)
@@ -673,24 +681,28 @@ def test_core_order_by_result_processor(dburl):
         check_paging_core(selectable=selectable, s=s)
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_orm_enum(dburl):
     with S(dburl, echo=ECHO) as s:
         q = s.query(Light.id, Light.colour).order_by(Light.intensity, Light.id)
         check_paging_orm(q=q)
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_orm_order_by_enum(no_mysql_dburl):
     with S(no_mysql_dburl, echo=ECHO) as s:
         q = s.query(Light.id).order_by(Light.colour, Light.intensity, Light.id)
         check_paging_orm(q=q)
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_orm_result_processor(dburl):
     with S(dburl, echo=ECHO) as s:
         q = s.query(Light.id, Light.myint).order_by(Light.intensity, Light.id)
         check_paging_orm(q=q)
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_orm_order_by_result_processor(dburl):
     with S(dburl, echo=ECHO) as s:
         q = s.query(Light.id).order_by(Light.myint, Light.id)
@@ -727,6 +739,7 @@ def test_bookmarks():
     assert twoway(last)
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_warn_when_sorting_by_nullable(dburl):
     with pytest.warns(UserWarning):
         with S(dburl, echo=ECHO) as s:
@@ -734,6 +747,7 @@ def test_warn_when_sorting_by_nullable(dburl):
             get_page(q, per_page=10, page=(None, False))
 
 
+@pytest.mark.skipif( sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_orm_custom_session_bind(dburl):
     spec = [desc(Book.b), Book.d, Book.id]
 
@@ -748,6 +762,7 @@ def test_orm_custom_session_bind(dburl):
         check_paging_orm(q=q)
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_multiple_engines(dburl, joined_inheritance_dburl):
 
     eng = sqlalchemy.create_engine(dburl)
@@ -768,6 +783,7 @@ def test_multiple_engines(dburl, joined_inheritance_dburl):
     JoinedInheritanceBase.metadata.bind = None
 
 
+@pytest.mark.skipif(sqla20, reason="sqlalchemy 2.0 does not support old Query")
 def test_marker_and_bookmark_per_item(dburl):
 
     with S(dburl, echo=ECHO) as s:
