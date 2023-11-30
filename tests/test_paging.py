@@ -17,11 +17,12 @@ from packaging import version
 
 import pytest
 import sqlalchemy
-from sqlalchemy.orm import Session, sessionmaker, aliased, Bundle
+from sqlalchemy.orm import Session, sessionmaker, aliased, Bundle, scoped_session
 from sqlalchemy import (
     desc,
     func,
 )
+from sqlbag.sqla import get_scoped_session_maker
 
 from sqlakeyset import (
     get_page,
@@ -47,6 +48,7 @@ from conftest import (
     SQLA2,
     SQLA_VERSION,
 )
+from sqlakeyset.sqla import get_bind, get_session
 
 warnings.simplefilter("error")
 
@@ -98,7 +100,7 @@ def check_paging_orm(q):
 def check_paging_core(selectable, s):
     item_counts = range(1, 12)
 
-    if isinstance(s, Session):
+    if isinstance(s, (Session, scoped_session)):
         result = s.execute(selectable)
     else:
         result = Session(bind=s).execute(selectable)
@@ -574,6 +576,26 @@ def test_multiple_engines(dburl, joined_inheritance_dburl):
     s.close()
     Base.metadata.bind = None
     JoinedInheritanceBase.metadata.bind = None
+
+
+def test_orm_scoped_session(dburl):
+    engine = sqlalchemy.create_engine(dburl)
+    factory = sessionmaker(bind=engine)
+    s = scoped_session(factory)
+    q = s.query(Book).order_by(Book.name)
+    get_bind(q=q, s=get_session(s))
+    check_paging_orm(q=q)
+    s.close()
+
+
+def test_core_scoped_session(dburl):
+    engine = sqlalchemy.create_engine(dburl)
+    factory = sessionmaker(bind=engine)
+    s = scoped_session(factory)
+    q = select(Book.id).order_by(Book.name)
+    check_paging_core(q, s)
+    get_bind(q=q, s=get_session(s))
+    s.close()
 
 
 def test_marker_and_bookmark_per_item(dburl):
