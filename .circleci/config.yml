@@ -11,7 +11,7 @@ jobs:
     working_directory: ~/circleci
     resource_class: large
     docker:
-      - image: ghcr.io/astral-sh/uv:0.5.7-python<<parameters.python>>-alpine
+      - image: ghcr.io/astral-sh/uv:0.9.8-python<<parameters.python>>-alpine
       - image: cimg/postgres:12.12
         environment:
           POSTGRES_USER: root
@@ -47,7 +47,7 @@ jobs:
           command: psql postgresql://@localhost/root -c 'create role postgres'
       - run:
           name: create mysql user
-          command: mysql root -u root -h 127.0.0.1 -e "create user 'root'@'127.0.0.1'; grant all privileges on *.* to 'root'@'127.0.0.1' identified by '';"
+          command: mysql --skip-ssl root -u root -h 127.0.0.1 -e "create user 'root'@'127.0.0.1'; grant all privileges on *.* to 'root'@'127.0.0.1' identified by '';"
       - run:
           name: Check formatting
           command: make lint
