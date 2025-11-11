@@ -331,7 +331,7 @@ def _dburl(request):
 
     with temporary_database(request.param, host="localhost") as dburl:
         with S(dburl) as s:
-            if request.param == "postgresql":
+            if request.param.split("+")[0] == "postgresql":
                 tables = None
             else:
                 tables = [
@@ -345,11 +345,13 @@ def _dburl(request):
         yield dburl
 
 
-SUPPORTED_ENGINES = ["sqlite", "postgresql", "mysql"]
+SUPPORTED_ENGINES = ["sqlite", "postgresql", "postgresql+psycopg", "mysql"]
 
 dburl = pytest.fixture(params=SUPPORTED_ENGINES)(_dburl)
-no_mysql_dburl = pytest.fixture(params=["sqlite", "postgresql"])(_dburl)
-pg_only_dburl = pytest.fixture(params=["postgresql"])(_dburl)
+no_mysql_dburl = pytest.fixture(params=["sqlite", "postgresql", "postgresql+psycopg"])(
+    _dburl
+)
+pg_only_dburl = pytest.fixture(params=["postgresql", "postgresql+psycopg"])(_dburl)
 
 
 @pytest.fixture(params=SUPPORTED_ENGINES)
