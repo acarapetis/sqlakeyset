@@ -1,7 +1,8 @@
 """Keyset/Marker types"""
+
 from __future__ import annotations
 
-from typing import Optional, Tuple, NamedTuple, Union, Any
+from typing import Any, NamedTuple, Optional, Tuple, Union
 
 Keyset = Tuple[Any, ...]
 """A tuple with as many entries as you have sort keys, representing a place in

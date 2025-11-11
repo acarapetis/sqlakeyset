@@ -15,13 +15,13 @@ from sqlalchemy.sql.operators import asc_op  # , desc_op
 from sqlakeyset import Page, Paging, serialize_bookmark
 from sqlakeyset.columns import (
     OC,
-    derive_order_key,
     AppendedColumn,
-    DirectColumn,
     AttributeColumn,
+    DirectColumn,
     _get_order_direction,
     _remove_order_direction,
     _reverse_order_direction,
+    derive_order_key,
 )
 
 

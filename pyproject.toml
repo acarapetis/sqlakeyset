@@ -40,7 +40,6 @@ dev = [
     "pymysql>=1.1.1",
     "flake8>=3.9.2",
     "flake8>=4; python_version >= '3.12'",
-    "isort>=5.11.5",
     "pytz>=2024.2",
     "arrow>=1.2.3",
     "python-dateutil>=2.9.0.post0",
@@ -55,11 +54,6 @@ doc = [
 [tool.uv.sources]
 sqlbag = { git = "https://github.com/acarapetis/sqlbag.git", rev = "0a97a185070228b43cb86181e5df8051f46ebc86" }
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-line_length = 88
-
 [tool.pytest.ini_options]
 filterwarnings = "ignore:.*cache_ok.*:::"
 
@@ -72,3 +66,9 @@ venvPath = "."
 venv = ".venv"
 pythonVersion = "3.8"
 typeCheckingMode = "standard"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = ["I"]

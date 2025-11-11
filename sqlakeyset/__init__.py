@@ -1,4 +1,4 @@
-from .paging import get_page, select_page, InvalidPage
+from .paging import InvalidPage, get_page, select_page
 from .results import (
     Page,
     Paging,

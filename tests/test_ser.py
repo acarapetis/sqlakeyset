@@ -1,19 +1,20 @@
 from __future__ import unicode_literals
 
 import csv
-import uuid
-import decimal
 import datetime
+import decimal
+import uuid
 from pathlib import Path
-import pytz
 
+import pytz
 from pytest import raises
+
 from sqlakeyset.results import s
 from sqlakeyset.serial import (
-    PageSerializationError,
     BadBookmark,
-    UnregisteredType,
     ConfigurationError,
+    PageSerializationError,
+    UnregisteredType,
     escape,
     unescape,
 )

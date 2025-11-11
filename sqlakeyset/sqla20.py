@@ -1,4 +1,5 @@
 """Methods for messing with the internals of SQLAlchemy 1.4/2.0 results."""
+
 from __future__ import annotations
 
 from sqlalchemy.engine.result import SimpleResultMetaData, result_tuple

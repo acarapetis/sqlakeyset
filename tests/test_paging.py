@@ -12,41 +12,42 @@ CLI and run e.g.
 which will execute the tests for python 3.11 and sqlalchemy ~=2.0.0 using
 docker containers. (Available python versions are 3.7, 3.8, 3.9, 3.10, 3.11 and
 valid sqlalchemy versions are 1.3.0, 1.4.0, 2.0.0.)"""
+
 import warnings
-from packaging import version
 
 import pytest
 import sqlalchemy
-from sqlalchemy.orm import Session, sessionmaker, aliased, Bundle
+from conftest import (
+    ECHO,
+    SQLA2,
+    SQLA_VERSION,
+    Animal,
+    Author,
+    Base,
+    Book,
+    JoinedInheritanceBase,
+    Light,
+    Mammal,
+    S,
+    Vertebrate,
+    Widget,
+    select,
+)
+from packaging import version
 from sqlalchemy import (
     desc,
     func,
 )
+from sqlalchemy.orm import Bundle, Session, aliased, sessionmaker
 
 from sqlakeyset import (
+    InvalidPage,
     get_page,
     select_page,
     serialize_bookmark,
     unserialize_bookmark,
-    InvalidPage,
 )
 from sqlakeyset.paging import process_args
-from conftest import (
-    Book,
-    Author,
-    ECHO,
-    S,
-    Animal,
-    Vertebrate,
-    Mammal,
-    Light,
-    Widget,
-    select,
-    JoinedInheritanceBase,
-    Base,
-    SQLA2,
-    SQLA_VERSION,
-)
 
 warnings.simplefilter("error")
 

@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
-from sqlakeyset import get_page
-from sqlbag import S
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, desc
+from sqlalchemy.ext.declarative import declarative_base
+from sqlbag import S
 
+from sqlakeyset import get_page
 
 SINGLES = """Tim McGraw 2006 40
 Teardrops on My Guitar 2007 13

@@ -1,5 +1,7 @@
 """Methods for messing with the internals of SQLAlchemy >1.3 results."""
+
 from __future__ import annotations
+
 from sqlalchemy.engine.result import SimpleResultMetaData
 from sqlalchemy.engine.row import LegacyRow
 

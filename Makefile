@@ -25,8 +25,7 @@ clean:
 	rm -rf dist
 
 lint:
-	uv run flake8 sqlakeyset
-	uv run flake8 tests
+	uvx pre-commit run -a
 
 tidy: clean fmt lint
 

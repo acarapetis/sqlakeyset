@@ -1,4 +1,5 @@
 """Paging data structures and bookmark handling."""
+
 from __future__ import annotations
 
 import csv
@@ -16,7 +17,7 @@ from typing import (
     overload,
 )
 
-from .serial import Serial, BadBookmark
+from .serial import BadBookmark, Serial
 from .types import Keyset, Marker, MarkerLike
 
 SERIALIZER_SETTINGS = dict(
@@ -53,13 +54,11 @@ def custom_bookmark_type(
 
 
 @overload
-def serialize_bookmark(marker: MarkerLike) -> str:
-    ...
+def serialize_bookmark(marker: MarkerLike) -> str: ...
 
 
 @overload
-def serialize_bookmark(marker: None) -> None:
-    ...
+def serialize_bookmark(marker: None) -> None: ...
 
 
 def serialize_bookmark(marker: Optional[MarkerLike]) -> Optional[str]:

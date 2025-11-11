@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 from typing import Any, Optional, Tuple, TypeVar, Union
 
-from sqlalchemy.sql.selectable import Select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+from sqlalchemy.sql.selectable import Select
 
 from sqlakeyset.paging import (
     PER_PAGE_DEFAULT,

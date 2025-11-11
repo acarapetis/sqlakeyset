@@ -36,7 +36,9 @@ if not SQLA14:
     # Thus the backwards if-else.
     from sqlalchemy.ext.declarative import declarative_base
 
-    select = lambda *args: _select(args)
+    def select(*args):
+        return _select(args)  # pyright: ignore[reportArgumentType, reportCallIssue]
+
     S = _S
 else:
     from sqlalchemy.orm import declarative_base

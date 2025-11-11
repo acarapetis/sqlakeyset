@@ -78,10 +78,10 @@ def compare_tuples(lesser: Sequence, greater: Sequence) -> ColumnElement[bool]:
 
     # Form the innermost comparison,
     # which will also be the only comparison if the tuples are of length 1
-    clause = (lesser[-1] < greater[-1])
+    clause = lesser[-1] < greater[-1]
 
     # Wrap with higher precedence comparisons on earlier columns
-    for idx in reversed(range(len(lesser)-1)):
+    for idx in reversed(range(len(lesser) - 1)):
         clause = or_(lesser[idx] < greater[idx], clause)
         clause = and_(lesser[idx] <= greater[idx], clause)
     return clause

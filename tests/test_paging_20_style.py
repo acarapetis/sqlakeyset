@@ -1,16 +1,17 @@
 """SQLAlchemy 2-style ORM tests"""
+
 import pytest
-from packaging import version
-from sqlalchemy import desc, func, select
-from sqlalchemy.orm import aliased, joinedload, selectinload
 from conftest import (
     ECHO,
     SQLA_VERSION,
     Author,
     Book,
-    Ticket,
     S,
+    Ticket,
 )
+from packaging import version
+from sqlalchemy import desc, func, select
+from sqlalchemy.orm import aliased, joinedload, selectinload
 from test_paging import check_paging_core
 
 if SQLA_VERSION < version.parse("1.4.0b1"):
@@ -190,11 +191,19 @@ def test_new_orm_query_using_connection(dburl):
 
 def test_new_orm_selectinload(dburl):
     with S(dburl, echo=ECHO) as s:
-        q = select(Author).options(selectinload(Author.books)).order_by(Author.name, Author.id)
+        q = (
+            select(Author)
+            .options(selectinload(Author.books))
+            .order_by(Author.name, Author.id)
+        )
         check_paging_core(q, s)
 
 
 def test_new_orm_joinedload(dburl):
     with S(dburl, echo=ECHO) as s:
-        q = select(Author).options(joinedload(Author.books)).order_by(Author.name, Author.id)
+        q = (
+            select(Author)
+            .options(joinedload(Author.books))
+            .order_by(Author.name, Author.id)
+        )
         check_paging_core(q, s, unique=True)

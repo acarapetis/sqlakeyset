@@ -1,9 +1,11 @@
 """Methods for messing with the internals of SQLAlchemy <=1.3 results."""
+
 from __future__ import annotations
 
 from typing import TypeVar
-from typing_extensions import Protocol
+
 from sqlalchemy.util import lightweight_named_tuple
+from typing_extensions import Protocol
 
 
 def orm_result_type(query):

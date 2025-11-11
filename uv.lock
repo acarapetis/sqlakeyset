@@ -508,15 +508,6 @@ wheels = [
 ]
 
 [[package]]
-name = "isort"
-version = "5.11.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/67/63/18cc5c2f9084d3f91ce704f2b5c8e17bedd777244e7732c21a31992b0a78/isort-5.11.5.tar.gz", hash = "sha256:6be1f76a507cb2ecf16c7cf14a37e41609ca082330be4e3436a18ef74add55db", size = 187953, upload-time = "2023-01-30T09:45:12.146Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/f6/c55db45970fbd14de6ab72082f1b8a143c3a69aa031c1e0dd4b9ecc8d496/isort-5.11.5-py3-none-any.whl", hash = "sha256:ba1d72fb2595a01c7895a5128f9585a5cc4b6d395f1c8d514989b9a7eb2a8746", size = 104094, upload-time = "2023-01-30T09:45:09.902Z" },
-]
-
-[[package]]
 name = "jinja2"
 version = "3.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1202,7 +1193,6 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "sqlalchemy" },
     { name = "typing-extensions", version = "4.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
-    { name = "typing-extensions", version = "4.12.2", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
 ]
 
 [package.dev-dependencies]
@@ -1215,7 +1205,6 @@ dev = [
     { name = "black" },
     { name = "flake8", version = "3.9.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "flake8", version = "7.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "isort" },
     { name = "psycopg", extra = ["binary"] },
     { name = "psycopg2-binary", version = "2.9.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
     { name = "psycopg2-binary", version = "2.9.10", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
@@ -1255,7 +1244,6 @@ dev = [
     { name = "black", specifier = ">=19.10b0" },
     { name = "flake8", specifier = ">=3.9.2" },
     { name = "flake8", marker = "python_full_version >= '3.12'", specifier = ">=4" },
-    { name = "isort", specifier = ">=5.11.5" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.12" },
     { name = "psycopg2-binary", specifier = ">=2.9.9" },
     { name = "psycopg2-binary", marker = "python_full_version >= '3.13'", specifier = ">=2.9.10" },

@@ -32,6 +32,14 @@ jobs:
     steps:
       - checkout
       - restore_cache:
+          key: pre-commit
+      - run:
+          name: install git
+          command: apk add --no-cache git
+      - run:
+          name: Lint
+          command: uvx pre-commit run -a
+      - restore_cache:
           key: uv-<<parameters.python>>
       - run: 
           name: Install non-python deps
@@ -49,9 +57,6 @@ jobs:
           name: create mysql user
           command: mysql --skip-ssl root -u root -h 127.0.0.1 -e "create user 'root'@'127.0.0.1'; grant all privileges on *.* to 'root'@'127.0.0.1' identified by '';"
       - run:
-          name: Check formatting
-          command: make lint
-      - run:
           name: Test with SQLAlchemy == << parameters.sqlalchemy >>
           command: |
             UV_RUN_ARGS="--with sqlalchemy==<<parameters.sqlalchemy>>" PYTEST_ARGS="-n4" make test
@@ -61,6 +66,10 @@ jobs:
           key: uv-<<parameters.python>>
           paths:
             - "~/.cache/uv"
+      - save_cache:
+          key: pre-commit
+          paths:
+            - "~/.cache/pre-commit"
 
   publish:
     working_directory: ~/circleci

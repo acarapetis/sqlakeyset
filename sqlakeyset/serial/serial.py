@@ -1,15 +1,17 @@
 """Bookmark (de)serialization logic."""
+
 from __future__ import unicode_literals
 
-import decimal
-import datetime
 import base64
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, TypeVar
-import uuid
-import dateutil.parser
 import csv
-from io import StringIO
+import datetime
+import decimal
+import uuid
 from contextlib import suppress
+from io import StringIO
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, TypeVar
+
+import dateutil.parser
 
 
 class InvalidPage(ValueError):
@@ -134,7 +136,9 @@ class Serial(object):
         if deserializer is None:
             deserializer = type
         if type in self.serializers:
-            raise ConfigurationError(f"Type {type} already has a serializer registered.")
+            raise ConfigurationError(
+                f"Type {type} already has a serializer registered."
+            )
         if code in self.deserializers:
             raise ConfigurationError(f"Type code {code} is already in use.")
         self.serializers[type] = lambda x: (code, serializer(x))
@@ -185,7 +189,7 @@ class Serial(object):
             c, x = serializer(x)
         except Exception as e:
             raise PageSerializationError(
-                "Custom bookmark serializer " "encountered error"
+                "Custom bookmark serializer encountered error"
             ) from e
 
         return "{}:{}".format(c, x)

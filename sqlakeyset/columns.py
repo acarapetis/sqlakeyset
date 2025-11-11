@@ -1,5 +1,6 @@
 """Classes and supporting functions to manipulate ordering columns and extract
 keyset markers from query results."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,8 +18,8 @@ from sqlalchemy.sql.elements import _label_reference
 from sqlalchemy.sql.expression import ClauseList, ColumnElement, Label
 from sqlalchemy.sql.operators import asc_op, desc_op, nullsfirst_op, nullslast_op
 
-from .sqla import order_by_clauses
 from .constants import ORDER_COL_PREFIX
+from .sqla import order_by_clauses
 
 # TODO: user *could* collide with this!
 
