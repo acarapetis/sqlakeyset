@@ -54,7 +54,7 @@ jobs:
       - run:
           name: Test with SQLAlchemy == << parameters.sqlalchemy >>
           command: |
-            UV_RUN_ARGS="--with pytest-xdist --with sqlalchemy==<<parameters.sqlalchemy>>" PYTEST_ARGS="-n4" make test
+            UV_RUN_ARGS="--with sqlalchemy==<<parameters.sqlalchemy>>" PYTEST_ARGS="-n4" make test
       - store_test_results:
           path: test-reports
       - save_cache:

@@ -45,6 +45,7 @@ dev = [
     "arrow>=1.2.3",
     "python-dateutil>=2.9.0.post0",
     "psycopg[binary]>=3.2.12",
+    "pytest-xdist>=3.6.1",
 ]
 doc = [
     "sphinx>=5",
