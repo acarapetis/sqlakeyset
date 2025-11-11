@@ -29,8 +29,9 @@ from sqlbag import temporary_database
 from sqlakeyset import custom_bookmark_type
 from sqlakeyset.sqla import SQLA_VERSION
 
-SQLA2 = SQLA_VERSION >= version.parse("1.4")
-if not SQLA2:
+SQLA14 = SQLA_VERSION >= version.parse("1.4")
+SQLA2 = SQLA_VERSION >= version.parse("2")
+if not SQLA14:
     # This block needs to be before the sqla2 block for type hints to work correctly??
     # Thus the backwards if-else.
     from sqlalchemy.ext.declarative import declarative_base
@@ -345,13 +346,15 @@ def _dburl(request):
         yield dburl
 
 
-SUPPORTED_ENGINES = ["sqlite", "postgresql", "postgresql+psycopg", "mysql"]
+SUPPORTED_ENGINES = ["sqlite", "postgresql", "mysql"]
+if SQLA2:
+    SUPPORTED_ENGINES.append("postgresql+psycopg")
+ENGINES_MINUS_MYSQL = [x for x in SUPPORTED_ENGINES if x != "mysql"]
+PG_ENGINES = [x for x in SUPPORTED_ENGINES if x.split("+")[0] == "postgresql"]
 
 dburl = pytest.fixture(params=SUPPORTED_ENGINES)(_dburl)
-no_mysql_dburl = pytest.fixture(params=["sqlite", "postgresql", "postgresql+psycopg"])(
-    _dburl
-)
-pg_only_dburl = pytest.fixture(params=["postgresql", "postgresql+psycopg"])(_dburl)
+no_mysql_dburl = pytest.fixture(params=ENGINES_MINUS_MYSQL)(_dburl)
+pg_only_dburl = pytest.fixture(params=PG_ENGINES)(_dburl)
 
 
 @pytest.fixture(params=SUPPORTED_ENGINES)
