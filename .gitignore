@@ -40,4 +40,6 @@ nosetests.xml
 .python-version
 
 .vim
-/test-reports
+/test-reports/
+/test-results/
+/scratch/
