@@ -66,17 +66,25 @@ def compare_tuples(lesser: Sequence, greater: Sequence) -> ColumnElement[bool]:
     if len(lesser) != len(greater):
         raise ValueError("Tuples must have same length to be compared!")
 
-    # This monster comprehension is just the long way of writing the
-    # lexicographic comparison lesser < greater
-    return or_(
-        *[
-            and_(
-                *[lesser[index] == greater[index] for index in range(eq_depth)],
-                lesser[eq_depth] < greater[eq_depth],
-            )
-            for eq_depth in range(len(lesser))
-        ]
-    )
+    # Build a comparison clause for a pair of tuples (l_a, . . ., l_y, l_z) and
+    # (g_a, . . ., g_y, g_z) of the form:
+    # l_a <= g_a & (l_a < g_a | ...(l_y <= g_y & (l_y < g_y | (l_z < g_z)))...)
+    # This unusual formulation of lexicographic comparison is chosen to have
+    # the feature of having a conjunction at the top level, which seems to be
+    # simpler for query optimizers to exploit than the top-level disjunction in
+    # the more typical form:
+    # l_a < g_a | (l_a = g_a & ... l_y < g_y | (l_y = g_y & (l_z < g_z))...)
+    # The two expressions are, however, equivalent.
+
+    # Form the innermost comparison,
+    # which will also be the only comparison if the tuples are of length 1
+    clause = (lesser[-1] < greater[-1])
+
+    # Wrap with higher precedence comparisons on earlier columns
+    for idx in reversed(range(len(lesser)-1)):
+        clause = or_(lesser[idx] < greater[idx], clause)
+        clause = and_(lesser[idx] <= greater[idx], clause)
+    return clause
 
 
 def where_condition_for_page(
