@@ -44,6 +44,7 @@ dev = [
     "pytz>=2024.2",
     "arrow>=1.2.3",
     "python-dateutil>=2.9.0.post0",
+    "psycopg[binary]>=3.2.12",
 ]
 doc = [
     "sphinx>=5",
@@ -69,3 +70,4 @@ build-backend = "hatchling.build"
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.8"
+typeCheckingMode = "standard"
