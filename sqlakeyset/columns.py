@@ -61,12 +61,17 @@ class OC:
     :class:`sqlalchemy.sql.expression.ColumnElement` appearing in the ORDER BY
     clause of a query we are paging."""
 
+    element: ColumnElement
+    """The ordering column/SQL expression with ordering modifier removed."""
+
     def __init__(self, x, enable_warnings=True):
         if isinstance(x, str):
             x = column(x)
         if _get_order_direction(x) is None:
             x = asc(x)
         self.uo = x
+        self.element = _remove_order_direction(x)
+
         if enable_warnings:
             _warn_if_nullable(self.comparable_value)
         self.full_name = str(self.element)
@@ -82,11 +87,6 @@ class OC:
     @property
     def quoted_full_name(self):
         return str(self).split()[0]
-
-    @property
-    def element(self) -> ColumnElement:
-        """The ordering column/SQL expression with ordering modifier removed."""
-        return _remove_order_direction(self.uo)
 
     @property
     def comparable_value(self):
@@ -236,7 +236,9 @@ def _remove_order_direction(ce: ColumnElement) -> ColumnElement:
                 "modifier; but sqlakeyset does not support order columns "
                 "with nulls. YOUR RESULTS WILL BE WRONG. See the "
                 "Limitations section of the sqlakeyset README for more "
-                "information."
+                "information.",
+                stacklevel=7,
+                # ^ 7 makes the warning reference the user's calling code
             )
         if mod in _ORDER_MODIFIERS:
             x._copy_internals()
