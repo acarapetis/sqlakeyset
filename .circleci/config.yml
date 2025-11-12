@@ -12,12 +12,12 @@ jobs:
     resource_class: large
     docker:
       - image: ghcr.io/astral-sh/uv:0.9.8-python<<parameters.python>>-alpine
-      - image: cimg/postgres:12.12
+      - image: cimg/postgres:18.0
         environment:
           POSTGRES_USER: root
           POSTGRES_DB: root
           POSTGRES_HOST_AUTH_METHOD: trust
-      - image: cimg/mariadb:10.11
+      - image: cimg/mariadb:11.7
         environment:
           MYSQL_DATABASE: root
           MYSQL_USER: root
