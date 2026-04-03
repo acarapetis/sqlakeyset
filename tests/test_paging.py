@@ -489,6 +489,12 @@ def test_orm_order_by_enum(no_mysql_dburl):
         check_paging_orm(q=q)
 
 
+def test_orm_order_by_boolean(no_mysql_dburl):
+    with S(no_mysql_dburl, echo=ECHO) as s:
+        q = s.query(Light.id).order_by(Light.is_switched, Light.id)
+        check_paging_orm(q=q)
+
+
 def test_orm_result_processor(dburl):
     with S(dburl, echo=ECHO) as s:
         q = s.query(Light.id, Light.myint).order_by(Light.intensity, Light.id)

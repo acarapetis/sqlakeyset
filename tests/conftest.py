@@ -8,6 +8,7 @@ import arrow
 import pytest
 from packaging import version
 from sqlalchemy import (
+    Boolean,
     Column,
     Enum,
     ForeignKey,
@@ -185,6 +186,7 @@ class Light(Base):
     intensity = Column(Integer, nullable=False)
     colour = Column(Enum(Colour), nullable=False)
     myint = Column(GuardDoubleProcessing, nullable=False)
+    is_switched = Column(Boolean, nullable=False, default=True)
 
 
 class Book(Base):
