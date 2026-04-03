@@ -20,6 +20,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql import cast
 from sqlalchemy.sql.expression import ColumnElement
 from sqlalchemy.sql.selectable import Select
 from sqlalchemy.sql.sqltypes import Boolean
@@ -60,33 +61,23 @@ def can_use_native_tuples(dialect: Dialect):
     return False
 
 
-def _cast_if_bool(comparator_1: Any, comparator_2: Any) -> tuple[Any, Any]:
+def _is_bool(a) -> bool:
+    """Check if a value or SQL clause has type bool."""
+    if isinstance(a, bool):
+        return True
+    if isinstance(a, ColumnElement):
+        return isinstance(a.type, Boolean)
+    return False
+
+
+def _cast_if_bool(a: Any, b: Any) -> tuple[Any, Any]:
     """Cast boolean values/columns to integers for comparison.
     SQLAlchemy doesn't allow <, <=, >, >= operators on boolean columns.
     """
-    # Identify which is the column and which is the value
-    column: ColumnElement
-    value: Any
-    if isinstance(comparator_1, ColumnElement):
-        column, value = comparator_1, comparator_2
+    if _is_bool(a) or _is_bool(b):
+        return cast(a, Integer), cast(b, Integer)
     else:
-        column, value = comparator_2, comparator_1
-
-    # Check if this is a boolean column/value that needs casting
-    is_bool_value = isinstance(value, bool)
-    is_bool_column = isinstance(column.type, Boolean)
-
-    if is_bool_value or is_bool_column:
-        # Cast column to Integer and convert value to int
-        casted_column = column.cast(Integer)
-        int_value = int(value)
-        # Return in the correct order
-        if isinstance(comparator_1, ColumnElement):
-            return casted_column, int_value
-        else:
-            return int_value, casted_column
-
-    return comparator_1, comparator_2
+        return a, b
 
 
 def compare_tuples(lesser: Sequence, greater: Sequence) -> ColumnElement[bool]:
