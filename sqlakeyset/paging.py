@@ -15,13 +15,15 @@ from typing import (
     overload,
 )
 
-from sqlalchemy import and_, or_, tuple_
+from sqlalchemy import Integer, and_, or_, tuple_
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql import cast
 from sqlalchemy.sql.expression import ColumnElement
 from sqlalchemy.sql.selectable import Select
+from sqlalchemy.sql.sqltypes import Boolean
 from typing_extensions import Literal  # to keep python 3.7 support
 
 from .columns import OC, MappedOrderColumn, find_order_key, parse_ob_clause
@@ -59,6 +61,25 @@ def can_use_native_tuples(dialect: Dialect):
     return False
 
 
+def _is_bool(a) -> bool:
+    """Check if a value or SQL clause has type bool."""
+    if isinstance(a, bool):
+        return True
+    if isinstance(a, ColumnElement):
+        return isinstance(a.type, Boolean)
+    return False
+
+
+def _cast_if_bool(a: Any, b: Any) -> tuple[Any, Any]:
+    """Cast boolean values/columns to integers for comparison.
+    SQLAlchemy doesn't allow <, <=, >, >= operators on boolean columns.
+    """
+    if _is_bool(a) or _is_bool(b):
+        return cast(a, Integer), cast(b, Integer)
+    else:
+        return a, b
+
+
 def compare_tuples(lesser: Sequence, greater: Sequence) -> ColumnElement[bool]:
     """Given two sequences of equal length (whose entries can be SQL clauses or
     simple values), create a simple SQL clause equivalent to the lexicographic
@@ -78,12 +99,14 @@ def compare_tuples(lesser: Sequence, greater: Sequence) -> ColumnElement[bool]:
 
     # Form the innermost comparison,
     # which will also be the only comparison if the tuples are of length 1
-    clause = lesser[-1] < greater[-1]
+    l_a, g_a = _cast_if_bool(lesser[-1], greater[-1])
+    clause = l_a < g_a
 
     # Wrap with higher precedence comparisons on earlier columns
     for idx in reversed(range(len(lesser) - 1)):
-        clause = or_(lesser[idx] < greater[idx], clause)
-        clause = and_(lesser[idx] <= greater[idx], clause)
+        l_a, g_a = _cast_if_bool(lesser[idx], greater[idx])
+        clause = or_(l_a < g_a, clause)
+        clause = and_(l_a <= g_a, clause)
     return clause
 
 
